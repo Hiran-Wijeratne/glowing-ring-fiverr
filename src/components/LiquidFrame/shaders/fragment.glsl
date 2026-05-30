@@ -10,6 +10,7 @@ uniform float uRadius;
 uniform vec2  uCoverAspect;
 uniform float uAmount;
 uniform float uPulse;
+uniform vec2  uPulseCenter; // (1.001, 1-scrollBarCenter) — matches original
 
 varying vec2 vUv;
 
@@ -24,9 +25,8 @@ float sdRoundedBox(vec2 p, vec2 b, float r) {
 
 void main() {
   // ── Wave pulse (computed first — drives UV distortion) ───────────────────
-  vec2 aspect2     = vec2(uAspect, 1.0);
-  vec2 pulseCenter = vec2(1.001, 0.5);
-  vec2 wp   = (vUv - pulseCenter) * aspect2;
+  vec2 aspect2 = vec2(uAspect, 1.0);
+  vec2 wp      = (vUv - uPulseCenter) * aspect2;
   float wl  = length(aspect2);
   float wpl = wl - length(wp);
   float wsl = 0.5 * wl;
@@ -70,7 +70,7 @@ void main() {
   float innerAmbient = innerFall * uAmount * 0.12;
 
   // Inner pulse — wave sends a soft flash of light sweeping inward
-  float innerPulse = innerFall * wave * 0.18;
+  float innerPulse = innerFall * wave * 0.26;
 
   float innerLight = innerAmbient + innerPulse;
 
@@ -106,7 +106,7 @@ void main() {
   // UV distortion above (border ripple).  We scale the original values by 2×
   // so they read on our dark background, but keep the additive (not multiplicative)
   // form so the ring body doesn't blow out.
-  color += wave * (d1 * 0.25 + d2f * 0.25 + glowColor * 0.04);
+  color += wave * (d1 * 0.38 + d2f * 0.38 + glowColor * 0.06);
 
   // Inner scene light — ring illuminates the space inside it
   vec3 innerColor = mix(glowColor, vec3(0.15, 0.05, 0.02), 0.5);

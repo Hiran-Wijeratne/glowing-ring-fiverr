@@ -28,7 +28,9 @@ function RainbowRing() {
   // pulse: wave travel timer, 0→1 over ~2 s
   const pulseRef     = useRef(0)
   // scroll-out ratio (1 = fully visible, 0 = scrolled away)
-  const scrollRatioRef = useRef(1)
+  const scrollRatioRef    = useRef(1)
+  // mirrors scrollManager.scrollBarCenter: fraction of page scrolled (0 at top)
+  const scrollBarCenterRef = useRef(0)
   // mirrors AppleEfx.wasActive — tracks whether ring was active last frame
   const wasActiveRef = useRef(false)
 
@@ -40,6 +42,10 @@ function RainbowRing() {
     const onScroll = () => {
       const progress = window.scrollY / window.innerHeight
       scrollRatioRef.current = Math.max(0, 1 - progress / 0.5)
+      // Approximate scrollManager.scrollBarCenter: scroll position as a
+      // fraction of the scrollable range (stays near 0 on mobile — no scrollbar)
+      const maxScroll = document.body.scrollHeight - window.innerHeight
+      scrollBarCenterRef.current = maxScroll > 0 ? window.scrollY / maxScroll : 0
     }
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
@@ -95,6 +101,10 @@ function RainbowRing() {
       pulseRef.current = Math.min(pulseRef.current + dt * 0.5, 1)
     }
 
+    // u_pulseCenter = (1.001, 1 - scrollBarCenter) — exact original formula.
+    // On mobile there is no scrollbar so scrollBarCenter stays 0 → y = 1.0 (top-right).
+    // On desktop at rest it's also near 1.0.  We were hardcoding 0.5 which was wrong.
+    matRef.current.uPulseCenter = new THREE.Vector2(1.001, 1.0 - scrollBarCenterRef.current)
     matRef.current.uAmount = uAmount
     matRef.current.uPulse  = pulseRef.current
   })
@@ -110,6 +120,7 @@ function RainbowRing() {
         uIntensity={1.0}
         uAmount={0}
         uPulse={0}
+        uPulseCenter={new THREE.Vector2(1.001, 1.0)}
         transparent={true}
         depthWrite={false}
         blending={THREE.AdditiveBlending}

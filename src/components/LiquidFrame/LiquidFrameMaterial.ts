@@ -13,8 +13,9 @@ const LiquidFrameMaterial = shaderMaterial(
     uBorderWidth: 0.046,
     uRadius:      0.044,
     uCoverAspect: new THREE.Vector2(0.872, 0.491),
-    uAmount: 0,  // ring intensity + wave amplitude (AppleEfx u_amount)
-    uPulse:  0,  // wave travel 0→1               (AppleEfx u_pulse)
+    uAmount:      0,                            // ring intensity + wave amplitude
+    uPulse:       0,                            // wave travel 0→1
+    uPulseCenter: new THREE.Vector2(1.001, 1.0) // wave origin (right edge, top at rest)
   },
   vertexShader,
   fragmentShader,

@@ -25,7 +25,7 @@ const BG = `
 export default function App() {
   return (
     // Outer container is the scroll area — taller than 100vh so the user can scroll
-    <div style={{ minHeight: '250vh' }}>
+    <div style={{ minHeight: '600vh' }}>
 
       {/* Fixed canvas layer — stays in place as page scrolls.
           pointerEvents:none lets touch events fall through to the

@@ -37,11 +37,12 @@ function RainbowRing() {
       const progress  = window.scrollY / window.innerHeight   // viewport-heights scrolled
       const maxScroll = document.body.scrollHeight - window.innerHeight
 
-      // ── Scroll-in / scroll-out matching original section-based approach ───
-      // Fade IN:  scroll  0.1 → 0.4 viewport-heights (appear as user scrolls down)
-      // Fade OUT: scroll  0.9 → 1.3 viewport-heights (disappear further down)
-      const fadeIn  = Math.max(0, Math.min(1, (progress - 0.1) / 0.3))
-      const fadeOut = Math.max(0, Math.min(1, (progress - 0.9) / 0.4))
+      // ── Scroll-in / scroll-out — stretched to feel like the original's long section
+      // Fade IN:  0.5 → 1.0 viewport-heights scrolled
+      // Full:     1.0 → 4.0 (glow stays for 3 full viewport heights of scrolling)
+      // Fade OUT: 4.0 → 5.0
+      const fadeIn  = Math.max(0, Math.min(1, (progress - 0.5) / 0.5))
+      const fadeOut = Math.max(0, Math.min(1, (progress - 4.0) / 1.0))
       scrollAmountRef.current = fadeIn * (1 - fadeOut)
 
       // scrollBarCenter: 0 at top (no scrollbar on mobile → stays 0)

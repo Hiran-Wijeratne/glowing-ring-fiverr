@@ -27,11 +27,14 @@ export default function App() {
     // Outer container is the scroll area — taller than 100vh so the user can scroll
     <div style={{ minHeight: '250vh' }}>
 
-      {/* Fixed canvas layer — stays in place as page scrolls */}
+      {/* Fixed canvas layer — stays in place as page scrolls.
+          pointerEvents:none lets touch events fall through to the
+          scrollable outer div, fixing mobile scroll. */}
       <div style={{
         position: 'fixed',
         inset: 0,
         background: BG,
+        pointerEvents: 'none',
       }}>
         <Canvas
           dpr={[1, 2]}

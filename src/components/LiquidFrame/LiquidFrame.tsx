@@ -11,42 +11,43 @@ function sineIn(t: number): number {
   return 1 - Math.cos(t * Math.PI / 2)
 }
 
-// Linear remap with clamp, matching Lusion's math.fit
-function fit(x: number, inMin: number, inMax: number, outMin: number, outMax: number): number {
-  return outMin + (outMax - outMin) * Math.max(0, Math.min(1, (x - inMin) / (inMax - inMin)))
-}
-
-// Cap per-frame delta so shader-compilation stalls don't skip the animation.
+// Cap per-frame delta so shader-compilation stalls don't skip pulse animation.
 const MAX_DELTA = 1 / 60
 
 function RainbowRing() {
   const matRef = useRef<LiquidFrameMaterialImpl>(null)
   const { viewport, size } = useThree()
 
-  // t: intro timer (drives uAmount ramp on first load)
-  const tRef         = useRef(0)
-  // pulse: wave travel timer, 0→1 over ~2 s
-  const pulseRef     = useRef(0)
-  // scroll-out ratio (1 = fully visible, 0 = scrolled away)
-  const scrollRatioRef    = useRef(1)
-  // mirrors scrollManager.scrollBarCenter: fraction of page scrolled (0 at top)
+  // Raw scroll-driven amount (0 = invisible, 1 = fully visible).
+  // Replaces the old time-based tRef ramp — glow is now purely scroll-triggered.
+  const scrollAmountRef    = useRef(0)
+  // mirrors scrollManager.scrollBarCenter (0 at top, tracks scroll progress)
   const scrollBarCenterRef = useRef(0)
-  // mirrors AppleEfx.wasActive — tracks whether ring was active last frame
-  const wasActiveRef = useRef(false)
+  // pulse wave timer 0→1 over ~2 s
+  const pulseRef           = useRef(0)
+  // mirrors AppleEfx.wasActive
+  const wasActiveRef       = useRef(false)
 
   useEffect(() => {
-    tRef.current      = 0
-    pulseRef.current  = 0
-    wasActiveRef.current = false   // ensures pulse fires on first load too
+    scrollAmountRef.current  = 0
+    pulseRef.current         = 0
+    wasActiveRef.current     = false
 
     const onScroll = () => {
-      const progress = window.scrollY / window.innerHeight
-      scrollRatioRef.current = Math.max(0, 1 - progress / 0.5)
-      // Approximate scrollManager.scrollBarCenter: scroll position as a
-      // fraction of the scrollable range (stays near 0 on mobile — no scrollbar)
+      const progress  = window.scrollY / window.innerHeight   // viewport-heights scrolled
       const maxScroll = document.body.scrollHeight - window.innerHeight
+
+      // ── Scroll-in / scroll-out matching original section-based approach ───
+      // Fade IN:  scroll  0.1 → 0.4 viewport-heights (appear as user scrolls down)
+      // Fade OUT: scroll  0.9 → 1.3 viewport-heights (disappear further down)
+      const fadeIn  = Math.max(0, Math.min(1, (progress - 0.1) / 0.3))
+      const fadeOut = Math.max(0, Math.min(1, (progress - 0.9) / 0.4))
+      scrollAmountRef.current = fadeIn * (1 - fadeOut)
+
+      // scrollBarCenter: 0 at top (no scrollbar on mobile → stays 0)
       scrollBarCenterRef.current = maxScroll > 0 ? window.scrollY / maxScroll : 0
     }
+
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
@@ -57,12 +58,10 @@ function RainbowRing() {
     const W = size.width, H = size.height
     const aspect = vp.width / vp.height
 
-    // Lusion's exact padding formula
     const padding = Math.min(50, Math.min(W, H) * 0.1)
     const bw      = padding / H
     const radius  = (padding + 55) / H
 
-    // Lusion's exact coverAspect formula
     const i   = Math.min(H / W, 1.0) / Math.sqrt(W * W + H * H) * Math.max(W, H)
     const cvX = (W / H) * i
     const cvY = i
@@ -73,40 +72,27 @@ function RainbowRing() {
     matRef.current.uRadius      = radius
     matRef.current.uCoverAspect = new THREE.Vector2(cvX, cvY)
 
-    // ── AppleEfx animation ────────────────────────────────────────────────
     const dt = Math.min(rawDelta, MAX_DELTA)
 
-    // t drives the ring's amount (visibility ramp)
-    tRef.current = Math.min(tRef.current + dt, 3)
-    const t = tRef.current
+    // uAmount = ease.sineIn(scrollAmount) — exact same structure as original:
+    //   u_amount = ease.sineIn(this.amount)  where this.amount is scroll-driven
+    const uAmount = sineIn(scrollAmountRef.current)
 
-    // uAmount = ease.sineIn(amount) where amount ramps 0→1 over 0.5 s
-    const rawAmount = fit(t, 0, 0.5, 0, 1)
-    const uAmount   = sineIn(rawAmount) * scrollRatioRef.current
-
-    // ── Exact AppleEfx needsRender() logic ───────────────────────────────
-    // Original:
-    //   let e = this.amount > 0 || this.pulse < 1
-    //   if (e && !this.wasActive) this.pulse = 0   ← reset on re-activation
-    //   this.wasActive = e
-    // This makes the pulse replay every time the ring comes back into view.
+    // ── AppleEfx needsRender() — reset pulse whenever ring re-enters view ───
     const isActive = uAmount > 0 || pulseRef.current < 1
     if (isActive && !wasActiveRef.current) {
-      pulseRef.current = 0   // re-entering view → restart the wave from scratch
+      pulseRef.current = 0
     }
     wasActiveRef.current = isActive
 
-    // uPulse increments at deltaTime * 0.5 (2 s total), matching AppleEfx render()
     if (isActive) {
       pulseRef.current = Math.min(pulseRef.current + dt * 0.5, 1)
     }
 
-    // u_pulseCenter = (1.001, 1 - scrollBarCenter) — exact original formula.
-    // On mobile there is no scrollbar so scrollBarCenter stays 0 → y = 1.0 (top-right).
-    // On desktop at rest it's also near 1.0.  We were hardcoding 0.5 which was wrong.
+    // u_pulseCenter: (1.001, 1 - scrollBarCenter) — exact original formula
     matRef.current.uPulseCenter = new THREE.Vector2(1.001, 1.0 - scrollBarCenterRef.current)
-    matRef.current.uAmount = uAmount
-    matRef.current.uPulse  = pulseRef.current
+    matRef.current.uAmount      = uAmount
+    matRef.current.uPulse       = pulseRef.current
   })
 
   return (

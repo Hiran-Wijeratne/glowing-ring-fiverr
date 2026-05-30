@@ -70,7 +70,7 @@ void main() {
   float innerAmbient = innerFall * uAmount * 0.12;
 
   // Inner pulse — wave sends a soft flash of light sweeping inward
-  float innerPulse = innerFall * wave * 0.26;
+  float innerPulse = innerFall * wave * 0.38;
 
   float innerLight = innerAmbient + innerPulse;
 
@@ -106,7 +106,7 @@ void main() {
   // UV distortion above (border ripple).  We scale the original values by 2×
   // so they read on our dark background, but keep the additive (not multiplicative)
   // form so the ring body doesn't blow out.
-  color += wave * (d1 * 0.38 + d2f * 0.38 + glowColor * 0.06);
+  color += wave * (d1 * 0.38 + d2f * 0.38 + glowColor * 0.18);
 
   // Inner scene light — ring illuminates the space inside it
   vec3 innerColor = mix(glowColor, vec3(0.15, 0.05, 0.02), 0.5);

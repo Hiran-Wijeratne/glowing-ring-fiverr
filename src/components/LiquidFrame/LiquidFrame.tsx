@@ -37,12 +37,13 @@ function RainbowRing() {
       const progress  = window.scrollY / window.innerHeight   // viewport-heights scrolled
       const maxScroll = document.body.scrollHeight - window.innerHeight
 
-      // ── Scroll-in / scroll-out — stretched to feel like the original's long section
-      // Fade IN:  0.5 → 1.0 viewport-heights scrolled
-      // Full:     1.0 → 4.0 (glow stays for 3 full viewport heights of scrolling)
-      // Fade OUT: 4.0 → 5.0
-      const fadeIn  = Math.max(0, Math.min(1, (progress - 0.5) / 0.5))
-      const fadeOut = Math.max(0, Math.min(1, (progress - 4.0) / 1.0))
+      // ── Scroll-in / scroll-out ────────────────────────────────────────────
+      // Fade IN fast (0.5→0.65) so the ring is at full brightness before the
+      // pulse peaks — wave = smoothstep * uAmount, so a dim ring = dim pulse.
+      // Full:     0.65 → 4.5 (stays visible for a long scroll section)
+      // Fade OUT: 4.5 → 5.0
+      const fadeIn  = Math.max(0, Math.min(1, (progress - 0.5) / 0.15))
+      const fadeOut = Math.max(0, Math.min(1, (progress - 4.5) / 0.5))
       scrollAmountRef.current = fadeIn * (1 - fadeOut)
 
       // scrollBarCenter: 0 at top (no scrollbar on mobile → stays 0)
